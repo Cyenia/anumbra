@@ -55,8 +55,8 @@ public sealed class PenumbraIpc : IDisposable
         _postEnabledDrawGate       = pi.GetIpcSubscriber<string, object?>("Penumbra.PostEnabledDraw");
         _modDirChangedGate         = pi.GetIpcSubscriber<string, bool, object?>("Penumbra.ModDirectoryChanged");
         _initializedGate           = pi.GetIpcSubscriber<object?>("Penumbra.Initialized");
-        _registerSettingsSection   = pi.GetIpcSubscriber<Action, int>("PenumbraRegisterSettingsSection");
-        _unregisterSettingsSection = pi.GetIpcSubscriber<Action, int>("PenumbraUnregisterSettingsSection");
+        _registerSettingsSection   = pi.GetIpcSubscriber<Action, int>("Penumbra.RegisterSettingsSection");
+        _unregisterSettingsSection = pi.GetIpcSubscriber<Action, int>("Penumbra.UnregisterSettingsSection");
         _getModDirectory           = pi.GetIpcSubscriber<string>("Penumbra.GetModDirectory");
 
         _preSettingsTabBarDrawGate.Subscribe(_onPreSettingsTabBarDraw);
@@ -99,6 +99,13 @@ public sealed class PenumbraIpc : IDisposable
         if (ImGui.Checkbox("Show preview images above the mod tab bar##AnumbraGlobal", ref show))
         {
             _config.ShowPreviewImages = show;
+            _config.Save();
+        }
+        
+        var expand = _config.ExpandByDefault;
+        if (ImGui.Checkbox("Expand preview images by default##AnumbraGlobal", ref expand))
+        {
+            _config.ExpandByDefault = expand;
             _config.Save();
         }
     }
