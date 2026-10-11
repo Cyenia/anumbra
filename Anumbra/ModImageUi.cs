@@ -61,9 +61,10 @@ public sealed class ModImageUi : IDisposable
                              .GetFromFile(_images[_index])
                              .GetWrapOrDefault();
 
+            ImGui.SameLine();
+
             if (_images.Count > 1)
             {
-                ImGui.SameLine();
                 var text = $"{_index + 1} / {_images.Count}   {Path.GetFileName(_images[_index])}";
                 if (wrap != null)
                 {
