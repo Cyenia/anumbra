@@ -213,19 +213,9 @@ public sealed class ModImageUi : IDisposable
 
     private void CopyImage(string src, string imagesDir)
     {
-        var ext  = Path.GetExtension(src).ToLowerInvariant();
-        var name = Path.GetFileNameWithoutExtension(src);
         try
         {
-            if (ext == ".webp")
-            {
-                using var img = Image.Load(src);
-                img.Save(Path.Combine(imagesDir, name + ".png"), new PngEncoder());
-            }
-            else
-            {
-                File.Copy(src, Path.Combine(imagesDir, Path.GetFileName(src)), overwrite: true);
-            }
+            File.Copy(src, Path.Combine(imagesDir, Path.GetFileName(src)), overwrite: true);
         }
         catch (Exception e)
         {
