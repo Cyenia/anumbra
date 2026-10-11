@@ -1,4 +1,3 @@
-using System;
 using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.IoC;
 using Dalamud.Plugin;

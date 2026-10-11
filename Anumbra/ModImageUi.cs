@@ -5,7 +5,9 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 
 namespace Anumbra;
 
@@ -44,39 +46,53 @@ public sealed class ModImageUi : IDisposable
         {
             ImGui.Text("No preview images.");
             ImGui.SameLine();
-            if (ImGui.Button("Upload##AnumbraCarouselUpload"))
-                OpenUploadDialog(modPath);
+            if (ImGui.Button("Add Image##AnumbraCarouselAdd"))
+                OpenAddDialog(modPath);
         }
         else
         {
-            // nav + upload row — rendered BEFORE the image so it is never
+            // nav + add row — rendered BEFORE the image so it is never
             // pushed below the fold by Penumbra's height-capped child window.
+            var avail = ImGui.GetContentRegionAvail();
+            if (ImGui.Button("Add Image##AnumbraCarouselAdd"))
+                OpenAddDialog(modPath);
+
+            var wrap = Plugin.TextureProvider
+                             .GetFromFile(_images[_index])
+                             .GetWrapOrDefault();
+
             if (_images.Count > 1)
             {
+                ImGui.SameLine();
+                var text = $"{_index + 1} / {_images.Count}   {Path.GetFileName(_images[_index])}";
+                if (wrap != null)
+                {
+                    var buttonSize = ImGuiHelpers.GetButtonSize(FontAwesomeIcon.ArrowLeft.ToIconString());
+                    var textSize = ImGui.CalcTextSize(text);
+                    var totalWidth = (buttonSize.X * 2f) + textSize.X + (ImGui.GetStyle().ItemSpacing.X * 3f);
+                    if (totalWidth < avail.X)
+                        ImGui.SetCursorPosX((avail.X / 2f) - (totalWidth / 2f) + ImGui.GetStyle().ItemSpacing.X);
+                }
+
                 if (ImGui.ArrowButton("##AnumbraPrev", ImGuiDir.Left))
                     _index = (_index - 1 + _images.Count) % _images.Count;
                 ImGui.SameLine();
-                ImGui.Text($"{_index + 1} / {_images.Count}   {Path.GetFileNameWithoutExtension(_images[_index])}");
+                ImGui.Text(text);
                 ImGui.SameLine();
                 if (ImGui.ArrowButton("##AnumbraNext", ImGuiDir.Right))
                     _index = (_index + 1) % _images.Count;
-                ImGui.SameLine();
             }
-
-            if (ImGui.Button("Upload##AnumbraCarouselUpload"))
-                OpenUploadDialog(modPath);
-
-            var wrap = Plugin.TextureProvider
-                .GetFromFile(_images[_index])
-                .GetWrapOrDefault();
 
             if (wrap != null)
             {
                 var scale    = ImGuiHelpers.GlobalScale;
-                var maxW     = Math.Min(ImGui.GetContentRegionAvail().X, MaxW * scale);
+                var maxW     = Math.Min(avail.X, MaxW * scale);
                 var maxH     = MaxH * scale;
                 var fitScale = Math.Min(Math.Min(maxW / wrap.Width, maxH / wrap.Height), 1f);
-                ImGui.Image(wrap.Handle, new Vector2(wrap.Width * fitScale, wrap.Height * fitScale));
+                var width = wrap.Width * fitScale;
+
+                ImGui.SetCursorPosX((avail.X / 2f) - (width / 2f) + ImGui.GetStyle().ItemSpacing.X);
+                ImGui.Image(wrap.Handle, new Vector2(width, wrap.Height * fitScale));
             }
         }
 
@@ -93,98 +109,73 @@ public sealed class ModImageUi : IDisposable
     {
         Sync(modPath);
 
-        ImGui.PushID("anumbra-penumbra-integration");
-        using var popId = new OnDispose(ImGui.PopID);
-
+        ImRaii.PushId("anumbra-penumbra-integration");
         ImGui.Spacing();
 
-        var anyChanged = false;
+        using var group = ImRaii.Group();
+        if(!group.Alive)
+            return;
 
-        ImGui.BeginGroup();
-        using (new OnDispose(ImGui.EndGroup))
+        var flags = _config.ExpandByDefault
+            ? ImGuiTreeNodeFlags.DefaultOpen
+            : ImGuiTreeNodeFlags.None;
+
+        using var node = ImRaii.TreeNode("Anumbra", flags);
+        if (!node.Success)
+            return;
+
+        if (ImGui.Button("Add Preview Images##AnumbraAdd"))
+            OpenAddDialog(modPath);
+
+        if (_images.Count == 0)
         {
-            var flags = _config.ExpandByDefault
-                ? ImGuiTreeNodeFlags.DefaultOpen
-                : ImGuiTreeNodeFlags.None;
-
-            if (ImGui.TreeNodeEx("Anumbra", flags))
+            ImGui.SameLine();
+            ImGui.TextDisabled("(no images yet)");
+        }
+        else
+        {
+            ImGui.Spacing();
+            for (var i = 0; i < _images.Count; i++)
             {
-                using var treePop = new OnDispose(ImGui.TreePop);
+                var path = _images[i];
 
-                if (ImGui.Button("Upload Preview Images##AnumbraUpload"))
-                    OpenUploadDialog(modPath);
-
-                if (_images.Count == 0)
+                if (!_renameBuffers.TryGetValue(path, out var buf))
                 {
-                    ImGui.SameLine();
-                    ImGui.TextDisabled("(no images yet)");
+                    buf = new byte[BufSize];
+                    Encoding.UTF8.GetBytes(Path.GetFileNameWithoutExtension(path), buf);
+                    _renameBuffers[path] = buf;
                 }
-                else
+
+                ImGui.PushItemWidth(150f * ImGuiHelpers.GlobalScale);
+                var inputLabel = Encoding.UTF8.GetBytes($"##AnumbraRename{i}\0");
+                ImGui.InputText(inputLabel, buf);
+                ImGui.PopItemWidth();
+
+                if (ImGui.IsItemDeactivatedAfterEdit())
+                    CommitRename(i, Encoding.UTF8.GetString(buf).TrimEnd('\0'));
+
+                ImGui.SameLine();
+                ImGui.SetCursorPosX(ImGui.GetCursorPosX() - ImGui.GetStyle().ItemSpacing.X + 2f);
+                ImGui.Text(Path.GetExtension(path));
+
+                ImGui.SameLine();
+                var deleteLabel = Encoding.UTF8.GetBytes($"Delete##AnumbraDelete{i}\0");
+                if (ImGui.Button(deleteLabel))
                 {
-                    ImGui.Spacing();
-                    for (var i = 0; i < _images.Count; i++)
-                    {
-                        var path = _images[i];
-
-                        if (!_renameBuffers.TryGetValue(path, out var buf))
-                        {
-                            buf = new byte[BufSize];
-                            Encoding.UTF8.GetBytes(Path.GetFileNameWithoutExtension(path), buf);
-                            _renameBuffers[path] = buf;
-                        }
-
-                        ImGui.PushItemWidth(220f * ImGuiHelpers.GlobalScale);
-                        var inputLabel = Encoding.UTF8.GetBytes($"##AnumbraRename{i}\0");
-                        ImGui.InputText(inputLabel, buf, ImGuiInputTextFlags.None);
-                        ImGui.PopItemWidth();
-
-                        if (ImGui.IsItemDeactivatedAfterEdit())
-                            CommitRename(i, Encoding.UTF8.GetString(buf).TrimEnd('\0'));
-
-                        ImGui.SameLine();
-                        var deleteLabel = Encoding.UTF8.GetBytes($"Delete##AnumbraDelete{i}\0");
-                        if (ImGui.Button(deleteLabel))
-                        {
-                            try   { File.Delete(path); }
-                            catch (Exception e) { Plugin.Log.Warning($"[Anumbra] Delete failed: {e.Message}"); }
-                            _renameBuffers.Remove(path);
-                            _images.RemoveAt(i);
-                            if (_index >= _images.Count) _index = Math.Max(0, _images.Count - 1);
-                            i--;
-                        }
-                    }
+                    try   { File.Delete(path); }
+                    catch (Exception e) { Plugin.Log.Warning($"[Anumbra] Delete failed: {e.Message}"); }
+                    _renameBuffers.Remove(path);
+                    _images.RemoveAt(i);
+                    if (_index >= _images.Count) _index = Math.Max(0, _images.Count - 1);
+                    i--;
                 }
             }
         }
-
-        if (ImGui.BeginPopupContextItem("context"))
-        {
-            using var endPopup = new OnDispose(ImGui.EndPopup);
-
-            var show = _config.ShowPreviewImages;
-            if (ImGui.Checkbox("Show preview images above tab bar##ctx", ref show))
-            {
-                _config.ShowPreviewImages = show;
-                anyChanged = true;
-            }
-
-            var expand = _config.ExpandByDefault;
-            if (ImGui.Checkbox("Expand by default##ctx", ref expand))
-            {
-                _config.ExpandByDefault = expand;
-                anyChanged = true;
-            }
-        }
-
-        ImGui.Spacing();
-
-        if (anyChanged)
-            _config.Save();
     }
 
     // ── file import ──────────────────────────────────────────────────────────
 
-    private void OpenUploadDialog(string modPath)
+    private void OpenAddDialog(string modPath)
     {
         var imagesDir = Path.Combine(modPath, "images");
         try   { Directory.CreateDirectory(imagesDir); }
@@ -197,7 +188,7 @@ public sealed class ModImageUi : IDisposable
         Plugin.FileDialogManager.OpenFileDialog(
             "Select Preview Images",
             "Images{.png,.jpg,.jpeg,.webp,.bmp}",
-            (bool ok, List<string> selected) =>
+            (ok, selected) =>
             {
                 if (!ok) return;
                 foreach (var src in selected)
@@ -205,7 +196,7 @@ public sealed class ModImageUi : IDisposable
                 _modPath = string.Empty;
             },
             selectionCountMax: 0,
-            startPath: null,
+            startPath: modPath,
             isModal: false);
     }
 
