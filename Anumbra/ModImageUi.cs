@@ -22,7 +22,7 @@ public sealed class ModImageUi : IDisposable
     private readonly Dictionary<string, byte[]> _renameBuffers = new();
     private const int BufSize = 256;
 
-    private static readonly string[] SupportedExtensions = [".png", ".jpg", ".jpeg", ".bmp"];
+    private static readonly string[] SupportedExtensions = [".webp", ".png", ".jpg", ".jpeg", ".bmp"];
 
     private const float MaxW = 500f;
     private const float MaxH = 200f;
