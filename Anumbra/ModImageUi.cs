@@ -6,8 +6,6 @@ using System.Numerics;
 using System.Text;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Png;
 
 namespace Anumbra;
 
