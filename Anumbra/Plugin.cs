@@ -1,4 +1,5 @@
 using Dalamud.Interface.ImGuiFileDialog;
+using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
@@ -13,6 +14,8 @@ public sealed class Plugin : IDalamudPlugin
 
     // FileDialogManager is not injectable — we own the instance and call Draw() ourselves.
     internal static readonly FileDialogManager FileDialogManager = new();
+    internal static WindowSystem WindowSystem { get; private set; } = new();
+    internal static readonly PopupImageUi PopupImageUi = new();
 
     public readonly Configuration Configuration;
     private readonly PenumbraIpc _penumbraIpc;
@@ -21,12 +24,17 @@ public sealed class Plugin : IDalamudPlugin
     {
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         _penumbraIpc  = new PenumbraIpc(PluginInterface, Configuration);
+        WindowSystem.AddWindow(PopupImageUi);
+
         PluginInterface.UiBuilder.Draw += FileDialogManager.Draw;
+        PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
     }
 
     public void Dispose()
     {
         PluginInterface.UiBuilder.Draw -= FileDialogManager.Draw;
+        PluginInterface.UiBuilder.Draw -= WindowSystem.Draw;
+        WindowSystem.RemoveAllWindows();
         _penumbraIpc.Dispose();
     }
 }

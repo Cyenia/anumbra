@@ -94,6 +94,17 @@ public sealed class ModImageUi : IDisposable
 
                 ImGui.SetCursorPosX((avail.X / 2f) - (width / 2f) + ImGui.GetStyle().ItemSpacing.X);
                 ImGui.Image(wrap.Handle, new Vector2(width, wrap.Height * fitScale));
+                if (ImGui.IsItemClicked())
+                {
+                    _ = Plugin.PopupImageUi.Show(wrap, _images[_index]);
+                }
+                if (ImGui.IsItemHovered())
+                {
+                    ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+                    ImGui.BeginTooltip();
+                    ImGui.TextUnformatted("Open preview in new window");
+                    ImGui.EndTooltip();
+                }
             }
         }
 
