@@ -4,8 +4,8 @@
     "Name": "Anumbra",
     "Description": "Hooks into Penumbra via IPC and renders a scrollable image carousel above the tab bar whenever a mod with an \"images\" subfolder is selected.",
     "InternalName": "Anumbra",
-    "AssemblyVersion": "0.0.0.4",
-    "TestingAssemblyVersion": "0.0.0.4",
+    "AssemblyVersion": "0.0.0.5",
+    "TestingAssemblyVersion": "0.0.0.5",
     "RepoUrl": "https://github.com/Cyenia/Anumbra",
     "ApplicableVersion": "any",
     "DalamudApiLevel": 15,
@@ -17,9 +17,9 @@
     "LoadPriority": 69420,
     "LoadRequiredState": 2,
     "LoadSync": true,
-    "DownloadLinkInstall": "https://github.com/Cyenia/anumbra/releases/download/0.0.0.4/Anumbra.zip",
-    "DownloadLinkTesting": "https://github.com/Cyenia/anumbra/releases/download/0.0.0.4/Anumbra.zip",
-    "DownloadLinkUpdate": "https://github.com/Cyenia/anumbra/releases/download/0.0.0.4/Anumbra.zip",
+    "DownloadLinkInstall": "https://github.com/Cyenia/anumbra/releases/download/0.0.0.5/Anumbra.zip",
+    "DownloadLinkTesting": "https://github.com/Cyenia/anumbra/releases/download/0.0.0.5/Anumbra.zip",
+    "DownloadLinkUpdate": "https://github.com/Cyenia/anumbra/releases/download/0.0.0.5/Anumbra.zip",
     "IconUrl": "https://raw.githubusercontent.com/Cyenia/anumbra/main/images/icon.png"
   }
 ]
