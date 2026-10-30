@@ -74,6 +74,11 @@ public sealed class PenumbraIpc : IDisposable
         if (!_config.ShowPreviewImages) return;
         var root = GetModRoot();
         if (root.Length == 0) return;
+        var path = Path.Combine(root, modDirectory);
+        if (!Directory.Exists(Path.Combine(path, Configuration.ImageFolderDirectory)))
+        {
+            Directory.CreateDirectory(Path.Combine(path, Configuration.ImageFolderDirectory));
+        }
         _ui.DrawCarousel(Path.Combine(root, modDirectory));
     }
 

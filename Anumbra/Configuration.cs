@@ -11,6 +11,9 @@ public class Configuration : IPluginConfiguration
     public bool ShowPreviewImages  { get; set; } = true;
     public bool ExpandByDefault    { get; set; } = true;
 
+    [NonSerialized]
+    public const string ImageFolderDirectory = "images";
+
     public void Save()
     {
         Plugin.PluginInterface.SavePluginConfig(this);

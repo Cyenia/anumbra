@@ -121,65 +121,74 @@ public sealed class ModImageUi : IDisposable
     {
         Sync(modPath);
 
-        ImRaii.PushId("anumbra-penumbra-integration");
-        ImGui.Spacing();
-
-        using var group = ImRaii.Group();
-        if(!group.Alive)
-            return;
-
-        var flags = _config.ExpandByDefault
-            ? ImGuiTreeNodeFlags.DefaultOpen
-            : ImGuiTreeNodeFlags.None;
-
-        using var node = ImRaii.TreeNode("Anumbra", flags);
-        if (!node.Success)
-            return;
-
-        if (ImGui.Button("Add Preview Images##AnumbraAdd"))
-            OpenAddDialog(modPath);
-
-        if (_images.Count == 0)
-        {
-            ImGui.SameLine();
-            ImGui.TextDisabled("(no images yet)");
-        }
-        else
+        using (ImRaii.PushId("anumbra-penumbra-integration"))
         {
             ImGui.Spacing();
-            for (var i = 0; i < _images.Count; i++)
+
+            using var group = ImRaii.Group();
+            if (!group.Alive)
+                return;
+
+            var flags = _config.ExpandByDefault
+                            ? ImGuiTreeNodeFlags.DefaultOpen
+                            : ImGuiTreeNodeFlags.None;
+
+            using var node = ImRaii.TreeNode("Anumbra", flags);
+            if (!node.Success)
+                return;
+
+            if (ImGui.Button("Add Preview Images##AnumbraAdd"))
+                OpenAddDialog(modPath);
+
+            if (_images.Count == 0)
             {
-                var path = _images[i];
-
-                if (!_renameBuffers.TryGetValue(path, out var buf))
-                {
-                    buf = new byte[BufSize];
-                    Encoding.UTF8.GetBytes(Path.GetFileNameWithoutExtension(path), buf);
-                    _renameBuffers[path] = buf;
-                }
-
-                ImGui.PushItemWidth(150f * ImGuiHelpers.GlobalScale);
-                var inputLabel = Encoding.UTF8.GetBytes($"##AnumbraRename{i}\0");
-                ImGui.InputText(inputLabel, buf);
-                ImGui.PopItemWidth();
-
-                if (ImGui.IsItemDeactivatedAfterEdit())
-                    CommitRename(i, Encoding.UTF8.GetString(buf).TrimEnd('\0'));
-
                 ImGui.SameLine();
-                ImGui.SetCursorPosX(ImGui.GetCursorPosX() - ImGui.GetStyle().ItemSpacing.X + 2f);
-                ImGui.Text(Path.GetExtension(path));
-
-                ImGui.SameLine();
-                var deleteLabel = Encoding.UTF8.GetBytes($"Delete##AnumbraDelete{i}\0");
-                if (ImGui.Button(deleteLabel))
+                ImGui.TextDisabled("(no images yet)");
+            }
+            else
+            {
+                ImGui.Spacing();
+                for (var i = 0; i < _images.Count; i++)
                 {
-                    try   { File.Delete(path); }
-                    catch (Exception e) { Plugin.Log.Warning($"[Anumbra] Delete failed: {e.Message}"); }
-                    _renameBuffers.Remove(path);
-                    _images.RemoveAt(i);
-                    if (_index >= _images.Count) _index = Math.Max(0, _images.Count - 1);
-                    i--;
+                    var path = _images[i];
+
+                    if (!_renameBuffers.TryGetValue(path, out var buf))
+                    {
+                        buf = new byte[BufSize];
+                        Encoding.UTF8.GetBytes(Path.GetFileNameWithoutExtension(path), buf);
+                        _renameBuffers[path] = buf;
+                    }
+
+                    ImGui.PushItemWidth(150f * ImGuiHelpers.GlobalScale);
+                    var inputLabel = Encoding.UTF8.GetBytes($"##AnumbraRename{i}\0");
+                    ImGui.InputText(inputLabel, buf);
+                    ImGui.PopItemWidth();
+
+                    if (ImGui.IsItemDeactivatedAfterEdit())
+                        CommitRename(i, Encoding.UTF8.GetString(buf).TrimEnd('\0'));
+
+                    ImGui.SameLine();
+                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() - ImGui.GetStyle().ItemSpacing.X + 2f);
+                    ImGui.Text(Path.GetExtension(path));
+
+                    ImGui.SameLine();
+                    var deleteLabel = Encoding.UTF8.GetBytes($"Delete##AnumbraDelete{i}\0");
+                    if (ImGui.Button(deleteLabel))
+                    {
+                        try
+                        {
+                            File.Delete(path);
+                        }
+                        catch (Exception e)
+                        {
+                            Plugin.Log.Warning($"[Anumbra] Delete failed: {e.Message}");
+                        }
+
+                        _renameBuffers.Remove(path);
+                        _images.RemoveAt(i);
+                        if (_index >= _images.Count) _index = Math.Max(0, _images.Count - 1);
+                        i--;
+                    }
                 }
             }
         }
@@ -189,8 +198,14 @@ public sealed class ModImageUi : IDisposable
 
     private void OpenAddDialog(string modPath)
     {
-        var imagesDir = Path.Combine(modPath, "images");
-        try   { Directory.CreateDirectory(imagesDir); }
+        var imagesDir = Path.Combine(modPath, Configuration.ImageFolderDirectory);
+        try
+        {
+            if(!Directory.Exists(imagesDir))
+            {
+                Directory.CreateDirectory(imagesDir);
+            }
+        }
         catch (Exception e)
         {
             Plugin.Log.Warning($"[Anumbra] Could not create images dir: {e.Message}");
@@ -264,7 +279,7 @@ public sealed class ModImageUi : IDisposable
         _renameBuffers.Clear();
         _images.Clear();
 
-        var dir = Path.Combine(modPath, "images");
+        var dir = Path.Combine(modPath, Configuration.ImageFolderDirectory);
         if (!Directory.Exists(dir)) return;
 
         try
